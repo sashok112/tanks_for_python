@@ -1,6 +1,7 @@
 import os
 import sys
 import pygame
+import time
 
 pygame.init()
 pygame.key.set_repeat(200, 70)
@@ -111,8 +112,8 @@ class Player(pygame.sprite.Sprite):
         self.frames = []
         self.image = player_image
         # self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
-        self.cut_sheet(player_image, 3, 3)
-        self.image = self.frames[2]
+        self.cut_sheet(player_image, 12, 3)
+        self.image = self.frames[0]
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
 
     def cut_sheet(self, sheet, columns, rows):
@@ -161,12 +162,17 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 player.rect.x -= STEP
+                player.image = player.frames[8]
             if event.key == pygame.K_RIGHT:
                 player.rect.x += STEP
+                player.image = player.frames[27]
             if event.key == pygame.K_UP:
                 player.rect.y -= STEP
+                player.image = player.frames[35]
             if event.key == pygame.K_DOWN:
                 player.rect.y += STEP
+                player.image = player.frames[0]
+
 
     camera.update(player)
 
