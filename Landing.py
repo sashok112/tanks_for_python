@@ -1,7 +1,13 @@
 import os
 import sys
 import pygame
+import threading
 import time
+
+direction = {"down": [0, 1, 2, 12, 13, 14, 24, 25, 26],
+             "right": [3, 4, 5, 15, 16, 17, 27, 28, 29],
+             "left": [6, 7, 8, 18, 19, 20, 30, 31, 32],
+             "up": [9, 10, 11, 21, 22, 23, 33, 34, 35]}
 
 pygame.init()
 pygame.key.set_repeat(200, 70)
@@ -18,6 +24,9 @@ player = None
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+bots_group = pygame.sprite.Group()
+
+bots = []
 
 
 def load_image(name, color_key=None):
@@ -56,6 +65,11 @@ def generate_level(level):
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 new_player = Player(x, y)
+            elif level[y][x] == 'B':
+                Tile('empty', x, y)
+                new_bot = Bot(x, y)
+                bots.append(new_bot)
+
     return new_player, x, y
 
 
@@ -124,6 +138,25 @@ class Player(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
 
 
+class Bot(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(bots_group, all_sprites)
+        self.frames = []
+        self.image = player_image
+        # self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
+
+        self.cut_sheet(player_image, 12, 3)
+        self.image = self.frames[24]
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
+
+
 class Camera:
     def __init__(self, field_size):
         self.dx = 0
@@ -147,12 +180,46 @@ class Camera:
         self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
 
 
+def go_bot():
+    count = 0
+    while True:
+        time.sleep(1)
+        count += 1
+        for i in bots:
+            i.rect.x += STEP
+            i.image = player.frames[29]
+
+
+def shoot():
+    ind = player.frames.index(player.image)
+    for i in direction:
+        if ind in direction[i]:
+            if i == "up" :
+                y = player.rect.y
+                x = player.rect.x
+                while y != 0:
+                    pass
+                pass
+            if i == "down":
+                pass
+            if i == "left":
+                pass
+            if i == "right":
+                pass
+            break
+
 start_screen()
 
 player, level_x, level_y = generate_level(load_level("levelex.txt"))
 camera = Camera((level_x, level_y))
 
 running = True
+
+try:
+    t1 = threading.Thread(target=go_bot)
+    t1.start()
+except:
+    print("Error: unable to start thread")
 
 while running:
 
@@ -172,7 +239,8 @@ while running:
             if event.key == pygame.K_DOWN:
                 player.rect.y += STEP
                 player.image = player.frames[0]
-
+            if event.key == pygame.K_SPACE:
+                shoot()
 
     camera.update(player)
 
@@ -181,6 +249,7 @@ while running:
 
     screen.fill(pygame.Color(255, 255, 255))
     tiles_group.draw(screen)
+    bots_group.draw(screen)
     player_group.draw(screen)
 
     pygame.display.flip()
@@ -188,3 +257,7 @@ while running:
     clock.tick(FPS)
 
 terminate()
+
+# TODO изменение в лвле позицию танчиков
+# TODO актуальная карта с позициями реальных игроков и ботов для упрощению будущих расчётов
+# TODO когда ломаетмя коробка или уезжает танк, то образуется травка
