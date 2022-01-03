@@ -65,10 +65,10 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["Р—РђРЎРўРђР’РљРђ", "",
-                  "РџСЂР°РІРёР»Р° РёРіСЂС‹",
-                  "Р•СЃР»Рё РІ РїСЂР°РІРёР»Р°С… РЅРµСЃРєРѕР»СЊРєРѕ СЃС‚СЂРѕРє,",
-                  "РїСЂРёС…РѕРґРёС‚СЃСЏ РІС‹РІРѕРґРёС‚СЊ РёС… РїРѕСЃС‚СЂРѕС‡РЅРѕ"]
+    intro_text = ["Танчики", "",
+                  "Игра создана на идеи ретро 2д танков",
+                  "Для вас будут появляться на карте боевые танки противников",
+                  "Вы должны, убивая их, уничтожить всю вражескую комманду"]
 
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
@@ -94,7 +94,7 @@ def start_screen():
 
 
 tile_images = {'wall': load_image('box.png'), 'empty': load_image('grass.png')}
-player_image = load_image('tanks.png')
+player_image = load_image('tanks1.png')
 
 tile_width = tile_height = 50
 
