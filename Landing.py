@@ -15,10 +15,12 @@ pygame.key.set_repeat(200, 70)
 FPS = 50
 WIDTH = 1280
 HEIGHT = 720
-STEP = 10
+STEP = 50
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+
+level_preposition = []
 
 player = None
 all_sprites = pygame.sprite.Group()
@@ -51,6 +53,10 @@ def load_level(filename):
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
+    global level_preposition
+    level_preposition = list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    for i in range(len(level_preposition)):
+        level_preposition[i] = list(level_preposition[i])
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
@@ -128,7 +134,9 @@ class Player(pygame.sprite.Sprite):
         # self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.cut_sheet(player_image, 12, 3)
         self.image = self.frames[0]
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.rect = self.image.get_rect().move(tile_width * pos_x + 5, tile_height * pos_y + 5)
+        self.x_map = pos_x
+        self.y_map = pos_y
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
@@ -148,6 +156,8 @@ class Bot(pygame.sprite.Sprite):
         self.cut_sheet(player_image, 12, 3)
         self.image = self.frames[24]
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+        self.x_map = pos_x
+        self.y_map = pos_y
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
@@ -185,16 +195,41 @@ def go_bot():
     while True:
         time.sleep(1)
         count += 1
+
         for i in bots:
+            if i.x_map == player.x_map:
+                flag_shoot = True
+                for j in range(min(i.y_map, player.y_map), max(i.y_map, player.y_map)):
+                    if level_preposition[j][i.x_map] == "#":
+                        flag_shoot = False
+                        break
+                if flag_shoot:
+                    shoot()
+                    print("Streliat")
+            if i.y_map == player.y_map:
+                flag_shoot = True
+                for j in range(min(i.x_map, player.x_map), max(i.x_map, player.x_map)):
+                    if level_preposition[i.y_map][j] == "#":
+                        flag_shoot = False
+                        break
+                if flag_shoot:
+                    shoot()
+                    print("Streliat")
             i.rect.x += STEP
+
             i.image = player.frames[29]
+            level_preposition[i.y_map][i.x_map] = "."
+            level_preposition[i.y_map][i.x_map + 1] = "@"
+            i.x_map += 1
+
+
 
 
 def shoot():
     ind = player.frames.index(player.image)
     for i in direction:
         if ind in direction[i]:
-            if i == "up" :
+            if i == "up":
                 y = player.rect.y
                 x = player.rect.x
                 while y != 0:
@@ -207,6 +242,7 @@ def shoot():
             if i == "right":
                 pass
             break
+
 
 start_screen()
 
@@ -222,23 +258,42 @@ except:
     print("Error: unable to start thread")
 
 while running:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                player.rect.x -= STEP
                 player.image = player.frames[8]
+                if level_preposition[player.y_map][player.x_map - 1] != "#":
+                    player.rect.x -= STEP
+                    level_preposition[player.y_map][player.x_map] = "."
+                    level_preposition[player.y_map][player.x_map - 1] = "@"
+                    player.x_map -= 1
             if event.key == pygame.K_RIGHT:
-                player.rect.x += STEP
                 player.image = player.frames[27]
+                if level_preposition[player.y_map][player.x_map + 1] != "#":
+                    player.rect.x += STEP
+                    level_preposition[player.y_map][player.x_map] = "."
+                    level_preposition[player.y_map][player.x_map + 1] = "@"
+                    player.x_map += 1
+
             if event.key == pygame.K_UP:
-                player.rect.y -= STEP
+
                 player.image = player.frames[35]
+                if level_preposition[player.y_map - 1][player.x_map] != "#":
+                    player.rect.y -= STEP
+                    level_preposition[player.y_map][player.x_map] = "."
+                    level_preposition[player.y_map - 1][player.x_map] = "@"
+                    player.y_map -= 1
+
             if event.key == pygame.K_DOWN:
-                player.rect.y += STEP
                 player.image = player.frames[0]
+                if level_preposition[player.y_map + 1][player.x_map] != "#":
+                    player.rect.y += STEP
+                    level_preposition[player.y_map][player.x_map] = "."
+                    level_preposition[player.y_map + 1][player.x_map] = "@"
+                    player.y_map += 1
+
             if event.key == pygame.K_SPACE:
                 shoot()
 
@@ -259,5 +314,4 @@ while running:
 terminate()
 
 # TODO изменение в лвле позицию танчиков
-# TODO актуальная карта с позициями реальных игроков и ботов для упрощению будущих расчётов
 # TODO когда ломаетмя коробка или уезжает танк, то образуется травка
