@@ -4,6 +4,12 @@ import pygame
 import threading
 import time
 from collections import deque
+from itertools import cycle
+
+VISITOR_TTF_FILENAME = 'fonts/Mandelfilled.ttf'
+BLINK_EVENT = pygame.USEREVENT + 0
+
+running = True
 
 direction = {"down": [0, 1, 2, 12, 13, 14, 24, 25, 26],
              "right": [3, 4, 5, 15, 16, 17, 27, 28, 29],
@@ -95,14 +101,15 @@ def terminate():
 
 
 def start_screen():
+    screen_rect = screen.get_rect()
     intro_text = ["Танчики", "",
                   "Игра создана на идеи ретро 2д танков",
                   "Для вас будут появляться на карте боевые танки противников",
                   "Вы должны, убивая их, уничтожить всю вражескую комманду"]
 
-    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('fon1.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 40)
     text_coord = 50
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('white'))
@@ -113,12 +120,28 @@ def start_screen():
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
 
+    font = pygame.font.Font(os.path.join('data', VISITOR_TTF_FILENAME), 50)
+    on_text_surface = font.render(
+        'Press Any Key To Start', True, pygame.Color('gray9')
+    )
+    blink_rect = on_text_surface.get_rect()
+    blink_rect.bottomright = screen_rect.bottomright
+    off_text_surface = pygame.Surface(blink_rect.size)
+    blink_surfaces = cycle([on_text_surface, off_text_surface])
+    blink_surface = next(blink_surfaces)
+    pygame.time.set_timer(BLINK_EVENT, 1000)
+
     while True:
         for event in pygame.event.get():
+            if event.type == BLINK_EVENT:
+                blink_surface = next(blink_surfaces)
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        screen.blit(blink_surface, blink_rect)
+        pygame.display.update()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -223,8 +246,8 @@ class Camera:
 
 def go_bot():
     count = 0
-    while True:
-        time.sleep(1)
+    while running:
+        time.sleep(0.5)
         count += 1
 
         for i in bots:
@@ -254,25 +277,33 @@ def go_bot():
                 if path_segment != (i.x_map, i.y_map):
                     next_node = path_segment
                 path_segment = visited[path_segment]
-            print(next_node)
-            if next_node == (-1, -1):
-                print("error")
-            if next_node[0] > i.x_map:
-                i.rect.x += STEP
-                i.x_map += 1
-            elif next_node[0] < i.x_map:
-                i.rect.x -= STEP
-                i.x_map -= 1
-            elif next_node[1] > i.y_map:
-                i.rect.y += STEP
-                i.y_map += 1
-            elif next_node[1] < i.y_map:
-                i.rect.y -= STEP
-                i.y_map -= 1
-            i.image = player.frames[29]
-            level_preposition[i.y_map][i.x_map] = "."
-            level_preposition[next_node[0]][next_node[1]] = "B"
-
+            if next_node != (-1, -1):
+                if next_node[0] > i.x_map and  level_preposition[i.y_map][i.x_map+1] != "@" and  level_preposition[i.y_map][i.x_map+1] != "B":
+                    level_preposition[i.y_map][i.x_map] = "."
+                    i.rect.x += STEP
+                    i.x_map += 1
+                    i.image = player.frames[29]
+                    level_preposition[i.y_map][i.x_map] = "B"
+                elif next_node[0] < i.x_map and  level_preposition[i.y_map][i.x_map - 1] != "@" and  level_preposition[i.y_map][i.x_map - 1] != "B":
+                    level_preposition[i.y_map][i.x_map] = "."
+                    i.rect.x -= STEP
+                    i.x_map -= 1
+                    i.image = player.frames[18]
+                    level_preposition[i.y_map][i.x_map] = "B"
+                elif next_node[1] > i.y_map and level_preposition[i.y_map + 1][i.x_map] != "@" and level_preposition[i.y_map + 1][i.x_map] != "B":
+                    level_preposition[i.y_map][i.x_map] = "."
+                    i.rect.y += STEP
+                    i.y_map += 1
+                    i.image = player.frames[25]
+                    level_preposition[i.y_map][i.x_map] = "B"
+                elif next_node[1] < i.y_map and level_preposition[i.y_map - 1][i.x_map] != "@" and level_preposition[i.y_map - 1][i.x_map] != "B":
+                    level_preposition[i.y_map][i.x_map] = "."
+                    i.rect.y -= STEP
+                    i.y_map -= 1
+                    i.image = player.frames[10]
+                    level_preposition[i.y_map][i.x_map] = "B"
+        if event.type == pygame.QUIT:
+            break
 
 def shoot():
     ind = player.frames.index(player.image)
@@ -313,31 +344,28 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 player.image = player.frames[8]
-                if level_preposition[player.y_map][player.x_map - 1] != "#":
+                if level_preposition[player.y_map][player.x_map - 1] != "#" and level_preposition[player.y_map][player.x_map - 1] != "B":
                     player.rect.x -= STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map][player.x_map - 1] = "@"
                     player.x_map -= 1
             if event.key == pygame.K_RIGHT:
                 player.image = player.frames[27]
-                if level_preposition[player.y_map][player.x_map + 1] != "#":
+                if level_preposition[player.y_map][player.x_map + 1] != "#" and level_preposition[player.y_map][player.x_map + 1] != "B":
                     player.rect.x += STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map][player.x_map + 1] = "@"
                     player.x_map += 1
-
             if event.key == pygame.K_UP:
-
                 player.image = player.frames[35]
-                if level_preposition[player.y_map - 1][player.x_map] != "#":
+                if level_preposition[player.y_map - 1][player.x_map] != "#" and level_preposition[player.y_map - 1][player.x_map] != "B":
                     player.rect.y -= STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map - 1][player.x_map] = "@"
                     player.y_map -= 1
-
             if event.key == pygame.K_DOWN:
                 player.image = player.frames[0]
-                if level_preposition[player.y_map + 1][player.x_map] != "#":
+                if level_preposition[player.y_map + 1][player.x_map] != "#" and level_preposition[player.y_map + 1][player.x_map] != "B":
                     player.rect.y += STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map + 1][player.x_map] = "@"
@@ -362,5 +390,5 @@ while running:
 
 terminate()
 
-# TODO изменение в лвле позицию танчиков
-# TODO когда ломаетмя коробка или уезжает танк, то образуется травка
+
+# TODO Баг, когда игрок стоит рядом со стенкой то бот может наехать на коробку
