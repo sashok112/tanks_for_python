@@ -6,39 +6,19 @@ import time
 from collections import deque
 from itertools import cycle
 
-VISITOR_TTF_FILENAME = 'fonts/Mandelfilled.ttf'
-BLINK_EVENT = pygame.USEREVENT + 0
-
-running = True
-
-direction = {"down": [0, 1, 2, 12, 13, 14, 24, 25, 26],
-             "right": [3, 4, 5, 15, 16, 17, 27, 28, 29],
-             "left": [6, 7, 8, 18, 19, 20, 30, 31, 32],
-             "up": [9, 10, 11, 21, 22, 23, 33, 34, 35]}
-
-pygame.init()
-pygame.key.set_repeat(200, 70)
-
 FPS = 50
 WIDTH = 1280
 HEIGHT = 720
 STEP = 50
 cols, rows = 0, 0
-graph = {}
+VISITOR_TTF_FILENAME = 'fonts/Mandelfilled.ttf'
+direction = {"down": [0, 1, 2, 12, 13, 14, 24, 25, 26],
+             "right": [3, 4, 5, 15, 16, 17, 27, 28, 29],
+             "left": [6, 7, 8, 18, 19, 20, 30, 31, 32],
+             "up": [9, 10, 11, 21, 22, 23, 33, 34, 35]}
+BLINK_EVENT = pygame.USEREVENT + 0
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-
-level_preposition = []
-
-player = None
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-bots_group = pygame.sprite.Group()
-
-bots = []
-
+restart = False
 
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
@@ -101,6 +81,11 @@ def terminate():
 
 
 def start_screen():
+    global screen
+    global clock
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
     screen_rect = screen.get_rect()
     intro_text = ["Танчики", "",
                   "Игра создана на идеи ретро 2д танков",
@@ -144,12 +129,6 @@ def start_screen():
         pygame.display.update()
         pygame.display.flip()
         clock.tick(FPS)
-
-
-tile_images = {'wall': load_image('box.png'), 'empty': load_image('grass.png')}
-player_image = load_image('tanks1.png')
-
-tile_width = tile_height = 50
 
 
 class Tile(pygame.sprite.Sprite):
@@ -216,7 +195,9 @@ def bfs(start, goal, graph):
 
 
 def get_next_nodes(x, y):
-    check_next_node = lambda x, y: True if 0 <= x < cols and 0 <= y < rows and (level_preposition[y][x] == "." or level_preposition[y][x] == "@" or level_preposition[y][x] == "B") else False
+    check_next_node = lambda x, y: True if 0 <= x < cols and 0 <= y < rows and (
+            level_preposition[y][x] == "." or level_preposition[y][x] == "@" or level_preposition[y][
+        x] == "B") else False
     ways = [-1, 0], [0, -1], [1, 0], [0, 1]
     return [(x + dx, y + dy) for dx, dy in ways if check_next_node(x + dx, y + dy)]
 
@@ -247,90 +228,126 @@ class Camera:
 def go_bot():
     count = 0
     while running:
-        time.sleep(0.5)
+        time.sleep(0.33)
         count += 1
 
         for i in bots:
-            # if i.x_map == player.x_map:
-            #     flag_shoot = True
-            #     for j in range(min(i.y_map, player.y_map), max(i.y_map, player.y_map)):
-            #         if level_preposition[j][i.x_map] == "#":
-            #             flag_shoot = False
-            #             break
-            #     if flag_shoot:
-            #         shoot()
-            #         print("Streliat")
-            # if i.y_map == player.y_map:
-            #     flag_shoot = True
-            #     for j in range(min(i.x_map, player.x_map), max(i.x_map, player.x_map)):
-            #         if level_preposition[i.y_map][j] == "#":
-            #             flag_shoot = False
-            #             break
-            #     if flag_shoot:
-            #         shoot()
-            #         print("Streliat")
+            if i.x_map == player.x_map:
+                flag_shoot = True
+                for j in range(min(i.y_map, player.y_map), max(i.y_map, player.y_map)):
+                    if level_preposition[j][i.x_map] == "#":
+                        flag_shoot = False
+                        break
+                if flag_shoot:
+                    shoot()
+                    print("Streliat")
+            if i.y_map == player.y_map:
+                flag_shoot = True
+                for j in range(min(i.x_map, player.x_map), max(i.x_map, player.x_map)):
+                    if level_preposition[i.y_map][j] == "#":
+                        flag_shoot = False
+                        break
+                if flag_shoot:
+                    shoot()
+                    print("Streliat")
 
             queue, visited = bfs((i.x_map, i.y_map), (player.x_map, player.y_map), graph)
             path_head, path_segment = (player.x_map, player.y_map), (player.x_map, player.y_map)
+
             next_node = (-1, -1)
             while path_segment and path_segment in visited:
                 if path_segment != (i.x_map, i.y_map):
                     next_node = path_segment
                 path_segment = visited[path_segment]
             if next_node != (-1, -1):
-                if next_node[0] > i.x_map and  level_preposition[i.y_map][i.x_map+1] != "@" and  level_preposition[i.y_map][i.x_map+1] != "B":
+                if next_node[0] > i.x_map and level_preposition[i.y_map][i.x_map + 1] != "@" and \
+                        level_preposition[i.y_map][i.x_map + 1] != "B":
                     level_preposition[i.y_map][i.x_map] = "."
                     i.rect.x += STEP
                     i.x_map += 1
                     i.image = player.frames[29]
                     level_preposition[i.y_map][i.x_map] = "B"
-                elif next_node[0] < i.x_map and  level_preposition[i.y_map][i.x_map - 1] != "@" and  level_preposition[i.y_map][i.x_map - 1] != "B":
+                elif next_node[0] < i.x_map and level_preposition[i.y_map][i.x_map - 1] != "@" and \
+                        level_preposition[i.y_map][i.x_map - 1] != "B":
                     level_preposition[i.y_map][i.x_map] = "."
                     i.rect.x -= STEP
                     i.x_map -= 1
                     i.image = player.frames[18]
                     level_preposition[i.y_map][i.x_map] = "B"
-                elif next_node[1] > i.y_map and level_preposition[i.y_map + 1][i.x_map] != "@" and level_preposition[i.y_map + 1][i.x_map] != "B":
+                elif next_node[1] > i.y_map and level_preposition[i.y_map + 1][i.x_map] != "@" and \
+                        level_preposition[i.y_map + 1][i.x_map] != "B":
                     level_preposition[i.y_map][i.x_map] = "."
                     i.rect.y += STEP
                     i.y_map += 1
                     i.image = player.frames[25]
                     level_preposition[i.y_map][i.x_map] = "B"
-                elif next_node[1] < i.y_map and level_preposition[i.y_map - 1][i.x_map] != "@" and level_preposition[i.y_map - 1][i.x_map] != "B":
+                elif next_node[1] < i.y_map and level_preposition[i.y_map - 1][i.x_map] != "@" and \
+                        level_preposition[i.y_map - 1][i.x_map] != "B":
                     level_preposition[i.y_map][i.x_map] = "."
                     i.rect.y -= STEP
                     i.y_map -= 1
                     i.image = player.frames[10]
                     level_preposition[i.y_map][i.x_map] = "B"
-        if event.type == pygame.QUIT:
-            break
+
 
 def shoot():
-    ind = player.frames.index(player.image)
-    for i in direction:
-        if ind in direction[i]:
-            if i == "up":
-                y = player.rect.y
-                x = player.rect.x
-                while y != 0:
-                    pass
-                pass
-            if i == "down":
-                pass
-            if i == "left":
-                pass
-            if i == "right":
-                pass
-            break
+    global game_over
+    global restart
+    game_over = True
+    all_sprites1 = pygame.sprite.Group()
 
+    # создадим спрайт
+    sprite1 = pygame.sprite.Sprite()
+    # определим его вид
+    sprite1.image = load_image("gameover.png")
+    # и размеры
+    sprite1.rect = sprite1.image.get_rect()
+    # добавим спрайт в группу
+    all_sprites1.add(sprite1)
+    sprite1.rect.x = -852
+    clock1 = pygame.time.Clock()
+    running1 = True
+    while running1:
+        if sprite1.rect.x < 0:
+            sprite1.rect.x += 5
+        else:
+            running1 = False
+
+        all_sprites1.draw(screen)
+        all_sprites1.update(event)
+        pygame.display.flip()
+        clock1.tick(200)
+    game_over = False
+    restart = True
+
+
+def start():
+    global running, graph, game_over, screen, clock, level_preposition, player, all_sprites, tiles_group, player_group, \
+        bots_group, bots, tile_images, player_image, tile_width, tile_height, camera, restart
+    running = True
+    restart = False
+    pygame.key.set_repeat(200, 70)
+    graph = {}
+    game_over = False
+
+
+
+    level_preposition = []
+    player = None
+    all_sprites = pygame.sprite.Group()
+    tiles_group = pygame.sprite.Group()
+    player_group = pygame.sprite.Group()
+    bots_group = pygame.sprite.Group()
+    bots = []
+    tile_images = {'wall': load_image('box.png'), 'empty': load_image('grass.png')}
+    player_image = load_image('tanks1.png')
+    tile_width = tile_height = 50
+    player, level_x, level_y = generate_level(load_level("levelex.txt"))
+    camera = Camera((level_x, level_y))
+    running = True
 
 start_screen()
-
-player, level_x, level_y = generate_level(load_level("levelex.txt"))
-camera = Camera((level_x, level_y))
-
-running = True
-
+start()
 try:
     t1 = threading.Thread(target=go_bot)
     t1.start()
@@ -344,51 +361,53 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 player.image = player.frames[8]
-                if level_preposition[player.y_map][player.x_map - 1] != "#" and level_preposition[player.y_map][player.x_map - 1] != "B":
+                if level_preposition[player.y_map][player.x_map - 1] != "#" and level_preposition[player.y_map][
+                    player.x_map - 1] != "B":
                     player.rect.x -= STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map][player.x_map - 1] = "@"
                     player.x_map -= 1
             if event.key == pygame.K_RIGHT:
                 player.image = player.frames[27]
-                if level_preposition[player.y_map][player.x_map + 1] != "#" and level_preposition[player.y_map][player.x_map + 1] != "B":
+                if level_preposition[player.y_map][player.x_map + 1] != "#" and level_preposition[player.y_map][
+                    player.x_map + 1] != "B":
                     player.rect.x += STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map][player.x_map + 1] = "@"
                     player.x_map += 1
             if event.key == pygame.K_UP:
                 player.image = player.frames[35]
-                if level_preposition[player.y_map - 1][player.x_map] != "#" and level_preposition[player.y_map - 1][player.x_map] != "B":
+                if level_preposition[player.y_map - 1][player.x_map] != "#" and level_preposition[player.y_map - 1][
+                    player.x_map] != "B":
                     player.rect.y -= STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map - 1][player.x_map] = "@"
                     player.y_map -= 1
             if event.key == pygame.K_DOWN:
                 player.image = player.frames[0]
-                if level_preposition[player.y_map + 1][player.x_map] != "#" and level_preposition[player.y_map + 1][player.x_map] != "B":
+                if level_preposition[player.y_map + 1][player.x_map] != "#" and level_preposition[player.y_map + 1][
+                    player.x_map] != "B":
                     player.rect.y += STEP
                     level_preposition[player.y_map][player.x_map] = "."
                     level_preposition[player.y_map + 1][player.x_map] = "@"
                     player.y_map += 1
-
             if event.key == pygame.K_SPACE:
                 shoot()
 
     camera.update(player)
+    if not game_over:
+        for sprite in all_sprites:
+            camera.apply(sprite)
 
-    for sprite in all_sprites:
-        camera.apply(sprite)
+        screen.fill(pygame.Color(255, 255, 255))
+        tiles_group.draw(screen)
+        bots_group.draw(screen)
+        player_group.draw(screen)
 
-    screen.fill(pygame.Color(255, 255, 255))
-    tiles_group.draw(screen)
-    bots_group.draw(screen)
-    player_group.draw(screen)
+        pygame.display.flip()
 
-    pygame.display.flip()
-
-    clock.tick(FPS)
+        clock.tick(FPS)
+    if restart:
+        start()
 
 terminate()
-
-
-# TODO Баг, когда игрок стоит рядом со стенкой то бот может наехать на коробку
