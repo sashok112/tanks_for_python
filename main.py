@@ -19,8 +19,11 @@ direction = {"down": [0, 1, 2, 12, 13, 14, 24, 25, 26],
              "up": [9, 10, 11, 21, 22, 23, 33, 34, 35]}
 BLINK_EVENT = pygame.USEREVENT + 0
 flag_bullet = False
-
 restart = False
+flag_shoot_player = False
+delete_bot = [-1, -1]
+goal_x = -1
+goal_y = -1
 
 
 def random_generate_level(filename):
@@ -187,6 +190,86 @@ class Player(pygame.sprite.Sprite):
                 frame_location = (self.rect.w * i, self.rect.h * j)
                 self.frames.append(sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
 
+    def shoot(self):
+        global bullet_group, bullet_sprite, clock, bullet, goal_x, goal_y, flag_bullet, sound2, level_preposition, delete_bot, flag_shoot_player, bots
+        sound2.play()
+        bullet = Bullet(self.rect.x + 25, self.rect.y + 25)
+        goal_x = -1
+        goal_y = -1
+        print("new bullet player")
+        print(bullet.rect.x, bullet.rect.y)
+        if self.frames.index(self.image) in direction["up"]:
+            print('direction["up"]')
+            for i in reversed(range(0, self.y_map)):
+                if level_preposition[i][self.x_map] == 'B':
+                    delete_bot = [self.x_map, i]
+                    # print('delete_bot' + delete_bot)
+                    for j in range(len(bots)):
+                        if bots[j].x_map == self.x_map and bots[j].y_map == i:
+                            goal_x = bots[j].rect.x
+                            goal_y = bots[j].rect.y
+                            print('remove bot')
+                            delete_bot.append(bots[j])
+                            bots.remove(bots[j])
+                            level_preposition[i][self.x_map] = "."
+                            break
+                    flag_shoot_player = True
+                    break
+        elif self.frames.index(self.image) in direction["down"]:
+            print('direction["down"]')
+            for i in range(0, self.y_map):
+                if level_preposition[i][self.x_map] == 'B':
+                    delete_bot = [self.x_map, i]
+                    # print('delete_bot' + delete_bot)
+                    for j in range(len(bots)):
+                        if bots[j].x_map == self.x_map and bots[j].y_map == i:
+                            goal_x = bots[j].rect.x
+                            goal_y = bots[j].rect.y
+                            print('remove bot')
+                            delete_bot.append(bots[j])
+                            bots.remove(bots[j])
+                            level_preposition[i][self.x_map] = "."
+                            break
+                    flag_shoot_player = True
+                    break
+
+        elif self.frames.index(self.image) in direction["left"]:
+            print('direction["left"]')
+            for i in reversed(range(0, self.x_map)):
+                if level_preposition[self.y_map][i] == 'B':
+                    delete_bot = [i, self.y_map]
+                    # print('delete_bot' + delete_bot)
+                    for j in range(len(bots)):
+                        if bots[j].x_map == i and bots[j].y_map == self.y_map:
+                            goal_x = bots[j].rect.x
+                            goal_y = bots[j].rect.y
+                            print('remove bot')
+                            delete_bot.append(bots[j])
+                            bots.remove(bots[j])
+                            level_preposition[self.y_map][i] = "."
+                            break
+                    flag_shoot_player = True
+                    break
+
+        elif self.frames.index(self.image) in direction["right"]:
+            print('direction["right"]')
+            for i in range(0, self.x_map):
+                if level_preposition[self.y_map][i] == 'B':
+                    delete_bot = [i, self.y_map]
+                    # print('delete_bot' + delete_bot)
+                    for j in range(len(bots)):
+                        if bots[j].x_map == i and bots[j].y_map == self.y_map:
+                            goal_x = bots[j].rect.x
+                            goal_y = bots[j].rect.y
+                            print('remove bot')
+                            delete_bot.append(bots[j])
+                            bots.remove(bots[j])
+                            level_preposition[self.y_map][i] = "."
+                            break
+                    flag_shoot_player = True
+                    break
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(bullet_group, all_sprites)
@@ -263,14 +346,12 @@ class Camera:
         self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
 
 
-
-
-
 def go_bot():
-    global flag_bullet
+    global flag_bullet, goal_y, goal_x, flag_shoot_player
+
     count = 0
     while running:
-        if not flag_bullet:
+        if not flag_bullet and not flag_shoot_player:
             time.sleep(0.7)
             count += 1
             for i in bots:
@@ -280,7 +361,7 @@ def go_bot():
                         if level_preposition[j][i.x_map] == "#":
                             flag_shoot = False
                             break
-                    if flag_shoot:
+                    if flag_shoot and goal_y == -1 and goal_x == -1:
                         shoot(i, player)
                         break
                 if i.y_map == player.y_map and max(i.x_map, player.x_map) - min(i.x_map, player.x_map) < 12:
@@ -289,7 +370,7 @@ def go_bot():
                         if level_preposition[i.y_map][j] == "#":
                             flag_shoot = False
                             break
-                    if flag_shoot:
+                    if flag_shoot and goal_y == -1 and goal_x == -1:
                         shoot(i, player)
                         break
 
@@ -333,29 +414,19 @@ def go_bot():
 
 
 def shoot(shooter, goal):
-    global bullet_group, bullet_sprite, clock, bullet, goal_x, goal_y, flag_bullet
-    bullet = Bullet(shooter.rect.x + 25, shooter.rect.y + 25)
+    global bullet_group, bullet_sprite, clock, bullet, goal_x, goal_y, flag_bullet, sound2
+
+    sound2.play()
     flag_bullet = True
+    bullet = Bullet(shooter.rect.x + 25, shooter.rect.y + 25)
+    print("new bullet bot")
+    print(bullet.rect.x, bullet.rect.y)
     goal_x = goal.rect.x + 20
     goal_y = goal.rect.y + 20
-    # while bullet.x_map != goal_x:
-    #     if bullet.x_map > goal_x:
-    #         bullet.x_map -= 1
-    #     if bullet.x_map < goal_x:
-    #         bullet.x_map += 1
-    #     clock.tick(FPS)
-    # print(bullet.y_map, goal_y)
-    # while bullet.y_map != goal_y:
-    #     if bullet.y_map > goal_y:
-    #         bullet.y_map -= 1
-    #     if bullet.y_map < goal_y:
-    #         bullet.y_map += 1
-    #     clock.tick(FPS)
-
 
 
 def anim_game_over():
-    global game_over, screen, restart
+    global game_over, screen, restart, flag_bullet
     game_over = True
     all_sprites1 = pygame.sprite.Group()
     # создадим спрайт
@@ -382,17 +453,22 @@ def anim_game_over():
         clock1.tick(200)
     game_over = False
     restart = True
+    flag_bullet = False
 
 
 def start():
     global running, graph, game_over, screen, clock, level_preposition, player, all_sprites, tiles_group, player_group, \
-        bots_group, bots, tile_images, player_image, tile_width, tile_height, camera, restart, bullet_group, bullet_sprite, flag_bullet
+        bots_group, bots, tile_images, player_image, tile_width, tile_height, camera, restart, bullet_group, bullet_sprite, \
+        flag_bullet, sound2, goal_x, goal_y
     running = True
     restart = False
     flag_bullet = False
     pygame.key.set_repeat(200, 70)
     graph = {}
     game_over = False
+    goal_x = -1
+    goal_y = -1
+    sound2 = pygame.mixer.Sound('data\shoot.ogg')
 
     level_preposition = []
     player = None
@@ -400,7 +476,6 @@ def start():
     tiles_group = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
     bots_group = pygame.sprite.Group()
-
 
     bullet_group = pygame.sprite.Group()
     bullet_sprite = pygame.sprite.Sprite()
@@ -427,47 +502,70 @@ except:
     print("Error: unable to start thread")
 
 while running:
-    if not game_over and not flag_bullet:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    player.image = player.frames[8]
-                    if level_preposition[player.y_map][player.x_map - 1] != "#" and level_preposition[player.y_map][
-                        player.x_map - 1] != "B":
-                        player.rect.x -= STEP
-                        level_preposition[player.y_map][player.x_map] = "."
-                        level_preposition[player.y_map][player.x_map - 1] = "@"
-                        player.x_map -= 1
-                if event.key == pygame.K_RIGHT:
-                    player.image = player.frames[27]
-                    if level_preposition[player.y_map][player.x_map + 1] != "#" and level_preposition[player.y_map][
-                        player.x_map + 1] != "B":
-                        player.rect.x += STEP
-                        level_preposition[player.y_map][player.x_map] = "."
-                        level_preposition[player.y_map][player.x_map + 1] = "@"
-                        player.x_map += 1
-                if event.key == pygame.K_UP:
-                    player.image = player.frames[35]
-                    if level_preposition[player.y_map - 1][player.x_map] != "#" and level_preposition[player.y_map - 1][
-                        player.x_map] != "B":
-                        player.rect.y -= STEP
-                        level_preposition[player.y_map][player.x_map] = "."
-                        level_preposition[player.y_map - 1][player.x_map] = "@"
-                        player.y_map -= 1
-                if event.key == pygame.K_DOWN:
-                    player.image = player.frames[0]
-                    if level_preposition[player.y_map + 1][player.x_map] != "#" and level_preposition[player.y_map + 1][
-                        player.x_map] != "B":
-                        player.rect.y += STEP
-                        level_preposition[player.y_map][player.x_map] = "."
-                        level_preposition[player.y_map + 1][player.x_map] = "@"
-                        player.y_map += 1
-            # if event.key == pygame.K_SPACE:
-            #     shoot()
+    if not game_over and not flag_bullet :
+        if not flag_shoot_player:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        player.image = player.frames[8]
+                        if level_preposition[player.y_map][player.x_map - 1] != "#" and level_preposition[player.y_map][
+                            player.x_map - 1] != "B":
+                            player.rect.x -= STEP
+                            level_preposition[player.y_map][player.x_map] = "."
+                            level_preposition[player.y_map][player.x_map - 1] = "@"
+                            player.x_map -= 1
+                    if event.key == pygame.K_RIGHT:
+                        player.image = player.frames[27]
+                        if level_preposition[player.y_map][player.x_map + 1] != "#" and level_preposition[player.y_map][
+                            player.x_map + 1] != "B":
+                            player.rect.x += STEP
+                            level_preposition[player.y_map][player.x_map] = "."
+                            level_preposition[player.y_map][player.x_map + 1] = "@"
+                            player.x_map += 1
+                    if event.key == pygame.K_UP:
+                        player.image = player.frames[35]
+                        if level_preposition[player.y_map - 1][player.x_map] != "#" and level_preposition[player.y_map - 1][
+                            player.x_map] != "B":
+                            player.rect.y -= STEP
+                            level_preposition[player.y_map][player.x_map] = "."
+                            level_preposition[player.y_map - 1][player.x_map] = "@"
+                            player.y_map -= 1
+                    if event.key == pygame.K_DOWN:
+                        player.image = player.frames[0]
+                        if level_preposition[player.y_map + 1][player.x_map] != "#" and level_preposition[player.y_map + 1][
+                            player.x_map] != "B":
+                            player.rect.y += STEP
+                            level_preposition[player.y_map][player.x_map] = "."
+                            level_preposition[player.y_map + 1][player.x_map] = "@"
+                            player.y_map += 1
+                    if event.key == pygame.K_SPACE:
+                        print("space")
+                        if not flag_shoot_player and not flag_bullet:
+                            print("player.shoot")
+                            player.shoot()
 
         camera.update(player)
+
+        if goal_x > 0 and goal_y > 0:
+            print('goal_x: ' + str(goal_x), 'goal_y: ' + str(goal_y))
+            if bullet.rect.x > goal_x:
+                bullet.rect.x -= 20
+            if bullet.rect.x < goal_x:
+                bullet.rect.x += 20
+            if bullet.rect.y > goal_y:
+                bullet.rect.y -= 20
+            if bullet.rect.y < goal_y:
+                bullet.rect.y += 20
+            if bullet.rect.x >= goal_x and bullet.rect.x <= goal_x + STEP and bullet.rect.y >= goal_y and bullet.rect.y <= goal_y + STEP:
+                flag_shoot_player = False
+                goal_x = -1
+                goal_y = -1
+                level_preposition[delete_bot[1]][delete_bot[0]] = '.'
+                delete_bot[2].rect.x = -100
+                delete_bot[2].rect.y = -100
+
 
         for sprite in all_sprites:
             camera.apply(sprite)
@@ -476,7 +574,8 @@ while running:
         tiles_group.draw(screen)
         bots_group.draw(screen)
         player_group.draw(screen)
-
+        if goal_x > 0 and goal_y > 0:
+            bullet_group.draw(screen)
 
         pygame.display.flip()
 
@@ -491,7 +590,6 @@ while running:
         if bullet.rect.y < goal_y:
             bullet.rect.y += 10
         if bullet.rect.x == goal_x and bullet.rect.y == goal_y:
-            flag_bullet = False
             anim_game_over()
         for sprite in all_sprites:
             camera.apply(sprite)
@@ -500,10 +598,9 @@ while running:
         bots_group.draw(screen)
         player_group.draw(screen)
 
-        #time.sleep(2)
+        # time.sleep(2)
         bullet_group.draw(screen)
         pygame.display.flip()
-
 
     if restart:
         start()
