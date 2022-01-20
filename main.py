@@ -8,8 +8,8 @@ from itertools import cycle
 from random import random, randint
 
 FPS = 50
-WIDTH = 1280
-HEIGHT = 720
+WIDTH = 1250
+HEIGHT = 750
 STEP = 50
 cols, rows = 0, 0
 VISITOR_TTF_FILENAME = 'fonts/Mandelfilled.ttf'
@@ -24,12 +24,13 @@ flag_shoot_player = False
 delete_bot = [-1, -1]
 goal_x = -1
 goal_y = -1
+SCORE = 0
 
 
 def random_generate_level(filename):
     cols, rows = 100, 100
-    bots = 10
-    coefZapoln = 0.5
+    bots = 3
+    coefZapoln = 0.2
     grid = [["#" if random() < 0.1 else "." for col in range(cols)] for row in range(rows)]
     for i in range(bots):
         tempCols = randint(int((cols / 2) - (cols * (coefZapoln / 2))), int((cols / 2) + (cols * (coefZapoln / 2))))
@@ -192,82 +193,85 @@ class Player(pygame.sprite.Sprite):
 
     def shoot(self):
         global bullet_group, bullet_sprite, clock, bullet, goal_x, goal_y, flag_bullet, sound2, level_preposition, delete_bot, flag_shoot_player, bots
-        sound2.play()
-        bullet = Bullet(self.rect.x + 25, self.rect.y + 25)
-        goal_x = -1
-        goal_y = -1
-        print("new bullet player")
-        print(bullet.rect.x, bullet.rect.y)
-        if self.frames.index(self.image) in direction["up"]:
-            print('direction["up"]')
-            for i in reversed(range(0, self.y_map)):
-                if level_preposition[i][self.x_map] == 'B':
-                    delete_bot = [self.x_map, i]
-                    # print('delete_bot' + delete_bot)
-                    for j in range(len(bots)):
-                        if bots[j].x_map == self.x_map and bots[j].y_map == i:
-                            goal_x = bots[j].rect.x
-                            goal_y = bots[j].rect.y
-                            print('remove bot')
-                            delete_bot.append(bots[j])
-                            bots.remove(bots[j])
-                            level_preposition[i][self.x_map] = "."
-                            break
-                    flag_shoot_player = True
-                    break
-        elif self.frames.index(self.image) in direction["down"]:
-            print('direction["down"]')
-            for i in range(0, self.y_map):
-                if level_preposition[i][self.x_map] == 'B':
-                    delete_bot = [self.x_map, i]
-                    # print('delete_bot' + delete_bot)
-                    for j in range(len(bots)):
-                        if bots[j].x_map == self.x_map and bots[j].y_map == i:
-                            goal_x = bots[j].rect.x
-                            goal_y = bots[j].rect.y
-                            print('remove bot')
-                            delete_bot.append(bots[j])
-                            bots.remove(bots[j])
-                            level_preposition[i][self.x_map] = "."
-                            break
-                    flag_shoot_player = True
-                    break
+        if self.rect.x + 25 > 1500 or self.rect.y + 25 > 1530:
+            print("NOWWW")
+        else:
+            sound2.play()
+            bullet = Bullet(self.rect.x + 25, self.rect.y + 25)
+            goal_x = -1
+            goal_y = -1
+            print("new bullet player")
+            print(bullet.rect.x, bullet.rect.y)
+            if self.frames.index(self.image) in direction["up"]:
+                print('direction["up"]')
+                for i in reversed(range(0, self.y_map)):
+                    if level_preposition[i][self.x_map] == 'B':
+                        delete_bot = [self.x_map, i]
+                        # print('delete_bot' + delete_bot)
+                        for j in range(len(bots)):
+                            if bots[j].x_map == self.x_map and bots[j].y_map == i:
+                                goal_x = bots[j].rect.x
+                                goal_y = bots[j].rect.y
+                                print('remove bot')
+                                delete_bot.append(bots[j])
+                                bots.remove(bots[j])
+                                level_preposition[i][self.x_map] = "."
+                                break
+                        flag_shoot_player = True
+                        break
+            elif self.frames.index(self.image) in direction["down"]:
+                print('direction["down"]')
+                for i in range(self.y_map, len(level_preposition)):
+                    if level_preposition[i][self.x_map] == 'B':
+                        delete_bot = [self.x_map, i]
+                        # print('delete_bot' + delete_bot)
+                        for j in range(len(bots)):
+                            if bots[j].x_map == self.x_map and bots[j].y_map == i:
+                                goal_x = bots[j].rect.x
+                                goal_y = bots[j].rect.y
+                                print('remove bot')
+                                delete_bot.append(bots[j])
+                                bots.remove(bots[j])
+                                level_preposition[i][self.x_map] = "."
+                                break
+                        flag_shoot_player = True
+                        break
 
-        elif self.frames.index(self.image) in direction["left"]:
-            print('direction["left"]')
-            for i in reversed(range(0, self.x_map)):
-                if level_preposition[self.y_map][i] == 'B':
-                    delete_bot = [i, self.y_map]
-                    # print('delete_bot' + delete_bot)
-                    for j in range(len(bots)):
-                        if bots[j].x_map == i and bots[j].y_map == self.y_map:
-                            goal_x = bots[j].rect.x
-                            goal_y = bots[j].rect.y
-                            print('remove bot')
-                            delete_bot.append(bots[j])
-                            bots.remove(bots[j])
-                            level_preposition[self.y_map][i] = "."
-                            break
-                    flag_shoot_player = True
-                    break
+            elif self.frames.index(self.image) in direction["left"]:
+                print('direction["left"]')
+                for i in reversed(range(0, self.x_map)):
+                    if level_preposition[self.y_map][i] == 'B':
+                        delete_bot = [i, self.y_map]
+                        # print('delete_bot' + delete_bot)
+                        for j in range(len(bots)):
+                            if bots[j].x_map == i and bots[j].y_map == self.y_map:
+                                goal_x = bots[j].rect.x
+                                goal_y = bots[j].rect.y
+                                print('remove bot')
+                                delete_bot.append(bots[j])
+                                bots.remove(bots[j])
+                                level_preposition[self.y_map][i] = "."
+                                break
+                        flag_shoot_player = True
+                        break
 
-        elif self.frames.index(self.image) in direction["right"]:
-            print('direction["right"]')
-            for i in range(0, self.x_map):
-                if level_preposition[self.y_map][i] == 'B':
-                    delete_bot = [i, self.y_map]
-                    # print('delete_bot' + delete_bot)
-                    for j in range(len(bots)):
-                        if bots[j].x_map == i and bots[j].y_map == self.y_map:
-                            goal_x = bots[j].rect.x
-                            goal_y = bots[j].rect.y
-                            print('remove bot')
-                            delete_bot.append(bots[j])
-                            bots.remove(bots[j])
-                            level_preposition[self.y_map][i] = "."
-                            break
-                    flag_shoot_player = True
-                    break
+            elif self.frames.index(self.image) in direction["right"]:
+                print('direction["right"]')
+                for i in range(self.x_map, len(level_preposition[0])):
+                    if level_preposition[self.y_map][i] == 'B':
+                        delete_bot = [i, self.y_map]
+                        # print('delete_bot' + delete_bot)
+                        for j in range(len(bots)):
+                            if bots[j].x_map == i and bots[j].y_map == self.y_map:
+                                goal_x = bots[j].rect.x
+                                goal_y = bots[j].rect.y
+                                print('remove bot')
+                                delete_bot.append(bots[j])
+                                bots.remove(bots[j])
+                                level_preposition[self.y_map][i] = "."
+                                break
+                        flag_shoot_player = True
+                        break
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -424,6 +428,64 @@ def shoot(shooter, goal):
     goal_x = goal.rect.x + 20
     goal_y = goal.rect.y + 20
 
+def anim_game_over():
+    global game_over, screen, restart, flag_bullet
+    game_over = True
+    all_sprites1 = pygame.sprite.Group()
+    # создадим спрайт
+    sprite1 = pygame.sprite.Sprite()
+    # определим его вид
+    sprite1.image = load_image("gameover.png")
+    # и размеры
+    sprite1.rect = sprite1.image.get_rect()
+    # добавим спрайт в группу
+    all_sprites1.add(sprite1)
+    sprite1.rect.x = -852
+    clock1 = pygame.time.Clock()
+    running1 = True
+    while running1:
+
+        if sprite1.rect.x < 0:
+            sprite1.rect.x += 5
+        else:
+            running1 = False
+
+        all_sprites1.draw(screen)
+        all_sprites1.update(event)
+        pygame.display.flip()
+        clock1.tick(200)
+    game_over = False
+    restart = True
+    flag_bullet = False
+
+def anim_winner():
+    global game_over, screen, restart, flag_bullet
+    game_over = True
+    all_sprites1 = pygame.sprite.Group()
+    # создадим спрайт
+    sprite1 = pygame.sprite.Sprite()
+    # определим его вид
+    sprite1.image = load_image("win.jpg")
+    # и размеры
+    sprite1.rect = sprite1.image.get_rect()
+    # добавим спрайт в группу
+    all_sprites1.add(sprite1)
+    sprite1.rect.x = -540
+    clock1 = pygame.time.Clock()
+    running1 = True
+    while running1:
+        if sprite1.rect.x < 0:
+            sprite1.rect.x += 2
+        else:
+            running1 = False
+        all_sprites1.draw(screen)
+        all_sprites1.update(event)
+        pygame.display.flip()
+        clock1.tick(200)
+    game_over = False
+    restart = True
+    flag_bullet = False
+
 
 def anim_game_over():
     global game_over, screen, restart, flag_bullet
@@ -469,7 +531,7 @@ def start():
     goal_x = -1
     goal_y = -1
     sound2 = pygame.mixer.Sound('data\shoot.ogg')
-
+    SCORE = 0
     level_preposition = []
     player = None
     all_sprites = pygame.sprite.Group()
@@ -565,6 +627,8 @@ while running:
                 level_preposition[delete_bot[1]][delete_bot[0]] = '.'
                 delete_bot[2].rect.x = -100
                 delete_bot[2].rect.y = -100
+                if len(bots) == 0:
+                    anim_winner()
 
 
         for sprite in all_sprites:
@@ -590,7 +654,16 @@ while running:
         if bullet.rect.y < goal_y:
             bullet.rect.y += 10
         if bullet.rect.x == goal_x and bullet.rect.y == goal_y:
+            if bullet.rect.x > goal_x:
+                bullet.rect.x -= 10
+            if bullet.rect.x < goal_x:
+                bullet.rect.x += 10
+            if bullet.rect.y > goal_y:
+                bullet.rect.y -= 10
+            if bullet.rect.y < goal_y:
+                bullet.rect.y += 10
             anim_game_over()
+
         for sprite in all_sprites:
             camera.apply(sprite)
         screen.fill(pygame.Color(255, 255, 255))
