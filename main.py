@@ -30,7 +30,7 @@ bots = []
 
 def random_generate_level(filename):
     cols, rows = 100, 100
-    bots = 3
+    bots = 1
     coefZapoln = 0.2
     grid = [["#" if random() < 0.1 else "." for col in range(cols)] for row in range(rows)]
     for i in range(bots):
